@@ -20,7 +20,7 @@ var __toCommonJS = (mod) => __copyProps(__defProp({}, "__esModule", { value: tru
 var module_exports = {};
 __export(module_exports, {
   default: () => module_default,
-  morph: () => morph
+  morph: () => src_default
 });
 module.exports = __toCommonJS(module_exports);
 
@@ -109,11 +109,16 @@ function morph(from, toHtml, options) {
     }
   }
   function patchChildren(from2, to) {
+    if (from2._x_teleport)
+      from2 = from2._x_teleport;
+    if (to._x_teleport)
+      to = to._x_teleport;
     let fromKeys = keyToMap(from2.children);
     let fromKeyHoldovers = {};
     let currentTo = getFirstNode(to);
     let currentFrom = getFirstNode(from2);
     while (currentTo) {
+      seedingMatchingId(currentTo, currentFrom);
       let toKey = getKey(currentTo);
       let fromKey = getKey(currentFrom);
       if (!currentFrom) {
@@ -131,8 +136,8 @@ function morph(from, toHtml, options) {
           continue;
         }
       }
-      let isIf = (node) => node && node.nodeType === 8 && node.textContent === " __BLOCK__ ";
-      let isEnd = (node) => node && node.nodeType === 8 && node.textContent === " __ENDBLOCK__ ";
+      let isIf = (node) => node && node.nodeType === 8 && node.textContent === "[if BLOCK]><![endif]";
+      let isEnd = (node) => node && node.nodeType === 8 && node.textContent === "[if ENDBLOCK]><![endif]";
       if (isIf(currentTo) && isIf(currentFrom)) {
         let nestedIfCount = 0;
         let fromBlockStart = currentFrom;
@@ -319,11 +324,6 @@ function getFirstNode(parent) {
   return parent.firstChild;
 }
 function getNextSibling(parent, reference) {
-  if (reference._x_teleport) {
-    return reference._x_teleport;
-  } else if (reference.teleportBack) {
-    return reference.teleportBack;
-  }
   let next;
   if (parent instanceof Block) {
     next = parent.nextNode(reference);
@@ -347,6 +347,13 @@ function monkeyPatchDomSetAttributeToAllowAtSymbols() {
     hostDiv.firstElementChild.removeAttributeNode(attr);
     this.setAttributeNode(attr);
   };
+}
+function seedingMatchingId(to, from) {
+  let fromId = from && from._x_bindings && from._x_bindings.id;
+  if (!fromId)
+    return;
+  to.setAttribute("id", fromId);
+  to.id = fromId;
 }
 
 // packages/morph/src/index.js
